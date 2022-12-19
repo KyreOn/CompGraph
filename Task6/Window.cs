@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Data;
 using CompGraph.Common;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
@@ -13,11 +13,12 @@ using OpenTK.Audio.OpenAL.Extensions.Creative.EFX;
 
 namespace CompGraph
 {
-    struct Figure
+    class Figure
     {
         public int Vao;
         public Vector3 Pos;
         public Vector3 Rot;
+        public Vector3 scale;
         public Vector3 Col;
         public int indCount;
     }
@@ -49,6 +50,8 @@ namespace CompGraph
 
         private Vector2 _lastPos;
 
+        private PrimitiveType _primitiveType = PrimitiveType.Triangles;
+
         public Window(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
         {
@@ -62,9 +65,9 @@ namespace CompGraph
 
             GL.Enable(EnableCap.DepthTest);
 
-            _camera = new Camera(Vector3.UnitZ * 3, Size.X / (float)Size.Y);
+            _camera = new Camera(Vector3.Zero, Size.X / (float)Size.Y);
 
-            var angleStep = 2 * MathF.PI / 12;
+            var angleStep = 2 * MathF.PI / 13;
             
             
             //LoadCylinder(0.5f, 1.0f, 3.0f, 100, new Vector3(0.0f, -1.7f, 0.0f), Vector3.Zero, Vector3.One);
@@ -75,15 +78,16 @@ namespace CompGraph
             LoadParallelepiped(1.0f, 1.0f, 1.0f, 30, new Vector3(8.0f * MathF.Cos(angleStep), 0, 8.0f * MathF.Sin(angleStep)), Vector3.Zero, GetRandColor());
             LoadPrism(0.5f, 1.0f, 2.0f, new Vector3(8.0f * MathF.Cos(2 * angleStep), 0, 8.0f * MathF.Sin(2 * angleStep)), Vector3.Zero, GetRandColor());
             LoadOctahedron(1.0f, new Vector3(8.0f * MathF.Cos(3 * angleStep), 0, 8.0f * MathF.Sin(3 * angleStep)), Vector3.Zero, GetRandColor());
-            LoadPyramid(1.0f, 2.0f, 8, new Vector3(8.0f * MathF.Cos(4 * angleStep), 0, 8.0f * MathF.Sin(4 * angleStep)), Vector3.Zero, GetRandColor());
+            LoadPyramid(1.0f, 2.0f, 3, new Vector3(8.0f * MathF.Cos(4 * angleStep), 0, 8.0f * MathF.Sin(4 * angleStep)), Vector3.Zero, GetRandColor());
             LoadCone(1.0f, 2.0f, new Vector3(8.0f * MathF.Cos(5 * angleStep), 0, 8.0f * MathF.Sin(5 * angleStep)), Vector3.Zero, GetRandColor());
             LoadCylinder(0.75f, 1.0f, 2.0f, 100, new Vector3(8.0f * MathF.Cos(6 * angleStep), 0, 8.0f * MathF.Sin(6 * angleStep)), Vector3.Zero, GetRandColor());
             LoadSphere(1.0f, new Vector3(8.0f * MathF.Cos(7 * angleStep), 0, 8.0f * MathF.Sin(7 * angleStep)),  GetRandColor());
             LoadSpring(4, 2.0f, 0.15f, 1.0f, new Vector3(8.0f * MathF.Cos(8 * angleStep), 0, 8.0f * MathF.Sin(8 * angleStep)), Vector3.Zero, GetRandColor());
             LoadTorus(0.5f, 1.0f, new Vector3(8.0f * MathF.Cos(9 * angleStep), 0, 8.0f * MathF.Sin(9 * angleStep)), Vector3.Zero, GetRandColor());
             LoadTetrahedron(1.0f, new Vector3(8.0f * MathF.Cos(10 * angleStep), 0, 8.0f * MathF.Sin(10 * angleStep)), Vector3.Zero, GetRandColor());
-            LoadIcosahedron(1.0f, new Vector3(8.0f * MathF.Cos(11 * angleStep), 0, 8.0f * MathF.Sin(11 * angleStep)), Vector3.Zero, GetRandColor());
-            LoadDodecahedron(1.0f, new Vector3(8.0f * MathF.Cos(12 * angleStep), 0, 8.0f * MathF.Sin(12 * angleStep)), Vector3.Zero, GetRandColor());
+            LoadHexahedron(1.0f, new Vector3(8.0f * MathF.Cos(11 * angleStep), 0,  8.0f * MathF.Sin(11 * angleStep)), Vector3.Zero, GetRandColor());
+            LoadIcosahedron(1.0f, new Vector3(8.0f * MathF.Cos(12 * angleStep), 0, 8.0f * MathF.Sin(12 * angleStep)), Vector3.Zero, GetRandColor());
+            LoadDodecahedron(1.0f, new Vector3(8.0f * MathF.Cos(13 * angleStep), 0, 8.0f * MathF.Sin(13 * angleStep)), Vector3.Zero, GetRandColor());
             
             LoadLightSphere(2.0f);
             CursorState = CursorState.Grabbed;
@@ -108,7 +112,7 @@ namespace CompGraph
             
             GL.BindVertexArray(lights[0].Vao);
             _lampShader.Use();
-            timer += (float)e.Time; 
+            timer += (float)e.Time;
             var angle = 0.5f *  timer % (2 * MathF.PI);
             _lightPos = new Vector3(_lightCircleRadius * MathF.Cos(angle), 1.0f, _lightCircleRadius * MathF.Sin(angle));
             Matrix4 lampMatrix = Matrix4.Identity;
@@ -693,6 +697,59 @@ namespace CompGraph
             
             LoadFigure(vertices.ToArray(), normals.ToArray(), indices.ToArray(), pos, rot, col);
         }
+
+        private void LoadHexahedron(float radius, Vector3 pos, Vector3 rot, Vector3 col)
+        {
+            var vertices = new List<float>()
+            {
+                -radius, radius, -radius,
+                -radius, radius, radius,
+                radius, radius, radius,
+                radius, radius, -radius,
+                
+                -radius, -radius, -radius,
+                -radius, -radius, radius,
+                radius, -radius, radius,
+                radius, -radius, -radius
+            };
+
+            var normals = new List<float>()
+            {
+                -1, 1, -1,
+                -1, 1, 1,
+                1, 1, 1,
+                1, 1, -1,
+
+                -1, -1, -1,
+                -1, -1, 1,
+                1, -1, 1,
+                1, -1, -1
+            };
+
+            var indices = new List<uint>()
+            {
+                0, 1, 2,
+                0, 2, 3,
+
+                4, 5, 6,
+                4, 6, 7,
+
+                0, 1, 4,
+                1, 4, 5,
+                
+                1, 2, 5,
+                2, 5, 6,
+                
+                2, 3, 6,
+                3, 6, 7,
+                
+                3, 0, 7,
+                0, 7, 4
+            };
+            
+            LoadFigure(vertices.ToArray(), normals.ToArray(), indices.ToArray(), pos, rot, col);
+
+        }
         private void LoadOctahedron(float radius, Vector3 pos, Vector3 rot, Vector3 col)
         {
             var vertices = new List<float>();
@@ -850,7 +907,10 @@ namespace CompGraph
         {
             foreach (var figure in figures)
             {
-                float time = DateTime.Now.Second + DateTime.Now.Millisecond / 1000f;
+                //figure.Pos = new Vector3(figure.Pos.X, MathF.Sin((timer) % (MathF.PI * 2)), figure.Pos.Z);
+                Console.WriteLine(figure.Pos.Y);
+                //figure.Rot = new Vector3(figure.Rot.X, (figure.Rot.Y + timer / 100000) % (2 * MathF.PI) , figure.Rot.Z);
+                //figure.scale = new Vector3(MathF.Sin(timer % (2 * MathF.PI)), MathF.Sin(timer % (2 * MathF.PI)), MathF.Sin(timer % (2 * MathF.PI)));
                 GL.BindVertexArray(figure.Vao);
                 var eulerRot = new Vector3(MathHelper.RadiansToDegrees(figure.Rot.X),
                     MathHelper.RadiansToDegrees(figure.Rot.Y),
@@ -858,6 +918,7 @@ namespace CompGraph
                 var model = Matrix4.Identity;
                 model *= Matrix4.CreateFromQuaternion(Quaternion.FromEulerAngles(eulerRot));
                 model *= Matrix4.CreateTranslation(figure.Pos);
+                //model *= Matrix4.CreateScale(figure.scale);
                 _lightingShader.Use();
 
                 _lightingShader.SetMatrix4("model", Matrix4.Identity);
@@ -866,20 +927,18 @@ namespace CompGraph
 
                 _lightingShader.SetVector3("viewPos", _camera.Position);
 
-                // Here we set the material values of the cube, the material struct is just a container so to access
-                // the underlying values we simply type "material.value" to get the location of the uniform
+                
                 _lightingShader.SetVector3("material.ambient", new Vector3(1.0f, 0.5f, 0.31f));
                 _lightingShader.SetVector3("material.diffuse", new Vector3(1.0f, 0.5f, 0.31f));
                 _lightingShader.SetVector3("material.specular", new Vector3(0.0f, 0.0f, 0.0f));
                 _lightingShader.SetFloat("material.shininess", 32.0f);
-                // This is where we change the lights color over time using the sin function
+                
                 Vector3 lightColor;
                 
                 lightColor.X = figure.Col.X;
                 lightColor.Y = figure.Col.Y;
                 lightColor.Z = figure.Col.Z;
-
-                // The ambient light is less intensive than the diffuse light in order to make it less dominant
+                
                 Vector3 ambientColor = lightColor * new Vector3(0.5f);
                 Vector3 diffuseColor = lightColor * new Vector3(0.8f);
 
@@ -889,7 +948,7 @@ namespace CompGraph
                 _lightingShader.SetVector3("light.specular", new Vector3(1.0f, 1.0f, 1.0f));
                 
                 _lightingShader.SetMatrix4("model", model);
-                GL.DrawElements(PrimitiveType.Triangles, figure.indCount, DrawElementsType.UnsignedInt, 0);
+                GL.DrawElements(_primitiveType, figure.indCount, DrawElementsType.UnsignedInt, 0);
                 
                 lightColor.X = 1;
                 lightColor.Y = 1;
@@ -922,6 +981,10 @@ namespace CompGraph
                 Close();
             }
 
+            if (input.IsKeyReleased(Keys.LeftAlt))
+                _primitiveType = _primitiveType == PrimitiveType.LineLoop
+                    ? PrimitiveType.Triangles
+                    : PrimitiveType.LineLoop;
             const float cameraSpeed = 1.5f;
             const float sensitivity = 0.2f;
 
