@@ -66,6 +66,12 @@ namespace CompGraph
 
             var angleStep = 2 * MathF.PI / 12;
             
+            
+            //LoadCylinder(0.5f, 1.0f, 3.0f, 100, new Vector3(0.0f, -1.7f, 0.0f), Vector3.Zero, Vector3.One);
+            //LoadSphere(0.5f, new Vector3(0.0f, 1.5f - 1.7f, 0.0f), Vector3.One);
+            
+            //LoadPyramid(2f, 3f, 3, new Vector3(0.0f, 3f / 2, 0.0f), Vector3.Zero, GetRandColor());
+            //LoadPyramid(2f, -2f, 3, new Vector3(0.0f, -2f / 2, 0.0f), Vector3.Zero, GetRandColor());
             LoadParallelepiped(1.0f, 1.0f, 1.0f, 30, new Vector3(8.0f * MathF.Cos(angleStep), 0, 8.0f * MathF.Sin(angleStep)), Vector3.Zero, GetRandColor());
             LoadPrism(0.5f, 1.0f, 2.0f, new Vector3(8.0f * MathF.Cos(2 * angleStep), 0, 8.0f * MathF.Sin(2 * angleStep)), Vector3.Zero, GetRandColor());
             LoadOctahedron(1.0f, new Vector3(8.0f * MathF.Cos(3 * angleStep), 0, 8.0f * MathF.Sin(3 * angleStep)), Vector3.Zero, GetRandColor());
@@ -386,7 +392,7 @@ namespace CompGraph
                 vertices.Add(y);
 
                 normals.Add(x * botInvLength);
-                normals.Add(-height / 2);
+                normals.Add(0);
                 normals.Add(y * botInvLength);
                 
                 curAngle += angleDiff;
@@ -402,7 +408,7 @@ namespace CompGraph
                 vertices.Add(y);
 
                 normals.Add(x * topInvLength);
-                normals.Add(height / 2);
+                normals.Add(0);
                 normals.Add(y * topInvLength);
                 
                 curAngle += angleDiff;
@@ -620,12 +626,20 @@ namespace CompGraph
                     var x = sliceRad * MathF.Cos(loopAngle);
                     var y = sliceRad * MathF.Sin(loopAngle);
                     var z = innerRad * MathF.Sin(sliceAngle);
-                    
+
+                    var tx = -MathF.Sin(loopAngle);
+                    var ty = MathF.Cos(loopAngle);
+                    var tz = 0;
+
+                    var sx = MathF.Cos(loopAngle) * (-MathF.Sin(sliceAngle));
+                    var sy = MathF.Sin(loopAngle) * (-MathF.Sin(sliceAngle));
+                    var sz = MathF.Cos(sliceAngle);
+
+                    var nx = ty * sz - tz * sy;
+                    var ny = tz * sz - tx * sz;
+                    var nz = tx * sy - ty * sx;
                     vertices.AddRange(new []{x, y , z});
-                    normals.AddRange(new []{MathF.Cos(loopAngle) * MathF.Sin(sliceAngle),
-                        MathF.Sin(loopAngle) * MathF.Cos(sliceAngle),
-                        MathF.Cos(sliceAngle)
-                    });
+                    normals.AddRange(new []{nx, ny, nz});
                 }
             }
             
@@ -866,8 +880,8 @@ namespace CompGraph
                 lightColor.Z = figure.Col.Z;
 
                 // The ambient light is less intensive than the diffuse light in order to make it less dominant
-                Vector3 ambientColor = lightColor * new Vector3(0.3f);
-                Vector3 diffuseColor = lightColor * new Vector3(0.5f);
+                Vector3 ambientColor = lightColor * new Vector3(0.5f);
+                Vector3 diffuseColor = lightColor * new Vector3(0.8f);
 
                 _lightingShader.SetVector3("light.position", _lightPos);
                 _lightingShader.SetVector3("light.ambient", ambientColor);
@@ -877,9 +891,9 @@ namespace CompGraph
                 _lightingShader.SetMatrix4("model", model);
                 GL.DrawElements(PrimitiveType.Triangles, figure.indCount, DrawElementsType.UnsignedInt, 0);
                 
-                lightColor.X = 0;
-                lightColor.Y = 0;
-                lightColor.Z = 0;
+                lightColor.X = 1;
+                lightColor.Y = 1;
+                lightColor.Z = 1;
                 
                 ambientColor = lightColor * new Vector3(1f);
                 diffuseColor = lightColor * new Vector3(1f);
