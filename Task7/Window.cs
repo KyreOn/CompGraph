@@ -89,7 +89,6 @@ namespace CompGraph
             LoadPrism(0.2025f, 0.38f, 1.97f,new Vector3(0, 6.685f, 0.2225f), new Vector3(0, (90) * MathF.PI / 180, 0), new Vector3(0.15f, 0.15f, 0.15f));
             LoadPrism(0.2025f, 0.38f, 1.97f, new Vector3(0, 6.685f, -0.2225f), new Vector3(0, -(90) * MathF.PI / 180, 0), new Vector3(0.15f, 0.15f, 0.15f));
             #endregion
-
             #region Blade
 
             LoadPyramidWithSquareAngle(0.2f, 0.7f, 20f, new Vector3(0f, 16, -0.35f), new Vector3(0, (90) * MathF.PI / 180, 0), new Vector3(3f / 256f, 169f / 256f, 252f / 256f));

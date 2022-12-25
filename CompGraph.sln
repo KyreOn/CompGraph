@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Task6", "Task6\Task6.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Task7", "Task7\Task7.csproj", "{53CA4BE4-E363-4F09-A61E-364580C6E3B4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TexTest", "TexTest\TexTest.csproj", "{FBE30867-DDCB-4A41-B38A-AB57528CCC28}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{53CA4BE4-E363-4F09-A61E-364580C6E3B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{53CA4BE4-E363-4F09-A61E-364580C6E3B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{53CA4BE4-E363-4F09-A61E-364580C6E3B4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBE30867-DDCB-4A41-B38A-AB57528CCC28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBE30867-DDCB-4A41-B38A-AB57528CCC28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBE30867-DDCB-4A41-B38A-AB57528CCC28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBE30867-DDCB-4A41-B38A-AB57528CCC28}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
