@@ -22,6 +22,8 @@ class Figure
 public class Window : GameWindow
 {
     private float _timer;
+    private PrimitiveType _primitiveType = PrimitiveType.Triangles;
+    
     private readonly Vector3[] _pointLightPositions =
     {
         new Vector3(10, 20, 0),
@@ -50,6 +52,7 @@ public class Window : GameWindow
     private Texture _bladeTexture;
     private Texture _bladeShineTexture;
     private Texture _specularMap;
+    private Texture _testTexture;
     
     private Camera _camera;
 
@@ -67,7 +70,7 @@ public class Window : GameWindow
         base.OnLoad();
 
         GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-
+        GL.Enable(EnableCap.FramebufferSrgb);
         GL.Enable(EnableCap.DepthTest);
         
         _lightingShader = new Shader("../../../Shaders/vert_shader.glsl", "../../../Shaders/light_shader.glsl");
@@ -86,12 +89,13 @@ public class Window : GameWindow
         _leatherTexture = Texture.LoadFromFile("../../../Resources/leather.png");
         _bladeTexture = Texture.LoadFromFile("../../../Resources/black.png");
         _bladeShineTexture = Texture.LoadFromFile("../../../Resources/blackShine.png");
+        _testTexture = Texture.LoadFromFile("../../../Resources/container2.png");
         _specularMap = Texture.LoadFromFile("../../../Resources/metal.png");
 
-        _camera = new Camera(Vector3.UnitY * 10 + Vector3.UnitX * 3, Size.X / (float)Size.Y);
+        _camera = new Camera( Vector3.UnitX * 3, Size.X / (float)Size.Y);
 
         CursorState = CursorState.Grabbed;
-        
+        /*
         #region Particles
 
         var partCount = 63;
@@ -105,17 +109,6 @@ public class Window : GameWindow
                 
             LoadSphere(0.1f, new Vector3(x, y, z), _leatherTexture);
         }
-        
-        //for (var i = 0; i < partCount; i++)
-        //{
-        //    var horStep = 0.25f;
-        //    var vertStep = 0.25f;
-        //    var x = -0.75f * MathF.Cos(horStep * i);
-        //    var y = 8 + (i * vertStep) % 16;
-        //    var z = 1.75f * MathF.Sin(horStep * i);
-        //        
-        //    LoadSphere(0.1f, new Vector3(x, y, z), _leatherTexture);
-        //}
 
         #endregion
         #region Grip
@@ -156,7 +149,70 @@ public class Window : GameWindow
             LoadPyramid(0.15f, 1f, 1f, 4,  new Vector3(0, 15f + 9.5f, 0), new Vector3(0, 90 * MathF.PI / 180, 0), _bladeTexture);
             //LoadPrismWithSquareAngle(0f, 0, 0.15f, 1.2f, 0.5f, new Vector3(0, 16 + 10.25f, 0), Vector3.Zero, _bladeTexture);
         #endregion
+        */
 
+        #region Body
+
+        LoadCylinder(0.7f, 0.2f, 3f, 100, new Vector3(0, -1.88f, 5.17f), new Vector3(-70 * MathF.PI / 180, 0, 0), _metalTexture);
+        LoadCylinder(1.5f, 0.7f, 8.0f, 100, Vector3.Zero, new Vector3(-70 * MathF.PI / 180, 0, 0), _metalTexture);
+        LoadCylinder(1f, 1.5f, 1, 100, new Vector3(0, 1.537f, -4.23f), new Vector3(-70 * MathF.PI / 180, 0, 0), _metalTexture);
+        LoadTorus(0.25f, 0.75f, new Vector3(0, 1.702f, -4.68f), new Vector3(20 * MathF.PI / 180, 0, 0), _bladeShineTexture);
+        LoadCone(0.4f, 0.4f, 1.5f, new Vector3(0f, 1.72f + 0.2f, -4.68f-0.5f), new Vector3(-70 * MathF.PI / 180, 0, 0), _metalTexture);
+        LoadCylinderWithSquareAngle(0.05f, 0.07f, 0.05f, 0.4f, 3.5f, 100, new Vector3(0.75f, 1.72f + 0.2f, -4.68f-0.5f), new Vector3(110 * MathF.PI / 180, 0, 90 * MathF.PI / 180), _bladeTexture);
+        LoadCylinderWithSquareAngle(0.05f, 0.07f, 0.05f, 0.4f, 3.5f, 100, new Vector3(-0.75f, 1.72f + 0.2f, -4.68f-0.5f), new Vector3(110 * MathF.PI / 180, 0, -90 * MathF.PI / 180), _bladeTexture);
+        
+        LoadTorus(0.55f, 0.7f, new Vector3(0, 1.0f, -1f), new Vector3(0, 90 * MathF.PI / 180, 90 * MathF.PI / 180), _bladeShineTexture);
+        LoadCylinderWithSquareAngle(0.65f, 1.25f, 0.65f,1.2f, 1.3f, 100, new Vector3(0, 1.0f, -1f), new Vector3(25 * MathF.PI / 180, 0, 0), _leatherTexture);
+        #endregion
+
+        #region Wings
+
+        LoadParallelepiped(15f, 2.5f, 0.2f, 0, new Vector3(0, -0.6f, -2.25f), new Vector3(15 * MathF.PI / 180, 0, 0), _leatherTexture);
+        LoadParallelepiped(15f, 2.5f, 0.2f, 0, new Vector3(0, 3f, -1.25f), new Vector3(19 * MathF.PI / 180, 0, 0), _leatherTexture);
+        LoadCylinder(0.1f, 0.1f, 3.75f, 100, new Vector3(5, 1.1f, -1.25f), new Vector3(30 * MathF.PI / 180, 0, 0), _leatherTexture);
+        LoadCylinder(0.1f, 0.1f, 3.8f, 100, new Vector3(5, 1.37f, -2.25f), new Vector3(0 * MathF.PI / 180, 0, 0), _leatherTexture);
+        
+        LoadCylinder(0.1f, 0.1f, 3.75f, 100, new Vector3(-5, 1.1f, -1.25f), new Vector3(30 * MathF.PI / 180, 0, 0), _leatherTexture);
+        LoadCylinder(0.1f, 0.1f, 3.8f, 100, new Vector3(-5, 1.37f, -2.25f), new Vector3(0 * MathF.PI / 180, 0, 0), _leatherTexture);
+        
+        LoadCylinder(0.05f, 0.05f, 6f, 100, new Vector3(3, 1.1f, -1.25f), new Vector3(-5 * MathF.PI / 180, 0, -50 * MathF.PI / 180), _leatherTexture);
+        LoadCylinder(0.05f, 0.05f, 6f, 100, new Vector3(2.95f, 1.4f, -2.45f), new Vector3(30 * MathF.PI / 180, 0, -50 * MathF.PI / 180), _leatherTexture);
+
+        LoadCylinder(0.05f, 0.05f, 6f, 100, new Vector3(-3, 1.1f, -1.25f), new Vector3(-5 * MathF.PI / 180, 0, 50 * MathF.PI / 180), _leatherTexture);
+        LoadCylinder(0.05f, 0.05f, 6f, 100, new Vector3(-2.95f, 1.4f, -2.45f), new Vector3(30 * MathF.PI / 180, 0, 50 * MathF.PI / 180), _leatherTexture);
+        
+        LoadCylinder(0.1f, 0.1f, 1.7f, 100, new Vector3(0.9f, 2.3f, -1.75f), new Vector3(40 * MathF.PI / 180, 0, 0), _leatherTexture);
+        LoadCylinder(0.1f, 0.1f, 1.7f, 100, new Vector3(0.9f, 2.2f, -1.25f), new Vector3(0 * MathF.PI / 180, 0, 0), _leatherTexture);
+        
+        LoadCylinder(0.1f, 0.1f, 1.7f, 100, new Vector3(-0.9f, 2.3f, -1.75f), new Vector3(40 * MathF.PI / 180, 0, 0), _leatherTexture);
+        LoadCylinder(0.1f, 0.1f, 1.7f, 100, new Vector3(-0.9f, 2.2f, -1.25f), new Vector3(0 * MathF.PI / 180, 0, 0), _leatherTexture);
+        
+        LoadParallelepiped(1f, 0.1f, 1.5f, 5, new Vector3(0, -1.5f, 6.35f), new Vector3(20 * MathF.PI / 180, -90 * MathF.PI / 180,0), _leatherTexture);
+        LoadParallelepiped(1f, 0.1f, 3f, 0, new Vector3(0, -2.3f, 6.075f), new Vector3(110 * MathF.PI / 180, 0,90 * MathF.PI / 180), _leatherTexture);
+        
+        #endregion
+
+        #region Wheels
+
+        LoadTorus(0.2f, 0.7f, new Vector3(1f, -2f, -3.5f), new Vector3(0, 90 * MathF.PI / 180, 0), _bladeTexture);
+        LoadTorus(0.2f, 0.7f, new Vector3(-1f, -2f, -3.5f), new Vector3(0, 90 * MathF.PI / 180, 0), _bladeTexture);
+        LoadCylinder(0.6f, 0.6f, 0.15f, 100, new Vector3(1f, -2f, -3.5f), new Vector3(0, 0, 90 * MathF.PI / 180), _metalTexture);
+        LoadCylinder(0.6f, 0.6f, 0.15f, 100, new Vector3(-1f, -2f, -3.5f), new Vector3(0, 0, 90 * MathF.PI / 180), _metalTexture);
+        LoadCylinder(0.3f, 0.3f, 0.25f, 100, new Vector3(1f, -2f, -3.5f), new Vector3(0, 0, 90 * MathF.PI / 180), _metalTexture);
+        LoadCylinder(0.3f, 0.3f, 0.25f, 100, new Vector3(-1f, -2f, -3.5f), new Vector3(0, 0, 90 * MathF.PI / 180), _metalTexture);
+        LoadCylinder(0.1f, 0.15f, 2f, 100, new Vector3(0f, -2f, -3.5f), new Vector3(90 * MathF.PI / 180, 0, 90 * MathF.PI / 180), _leatherTexture);
+        LoadCylinder(0.1f, 0.15f, 2.5f, 100, new Vector3(0.38f, -0.9f, -3.6f), new Vector3(0, -15 * MathF.PI / 180, 27.5f * MathF.PI / 180), _leatherTexture);
+        LoadCylinder(0.1f, 0.15f, 2f, 100, new Vector3(0.4f, -1.2f, -3.0f), new Vector3(0, 45 * MathF.PI / 180, 40 * MathF.PI / 180), _leatherTexture);
+        LoadCylinder(0.1f, 0.1f, 2.5f, 100, new Vector3(-0.38f, -0.9f, -3.6f), new Vector3(0, 15 * MathF.PI / 180, -27.5f * MathF.PI / 180), _leatherTexture);
+        LoadCylinder(0.1f, 0.1f, 2f, 100, new Vector3(-0.4f, -1.2f, -3.0f), new Vector3(0, -45 * MathF.PI / 180, -40 * MathF.PI / 180), _leatherTexture);
+
+        LoadTorus(0.08f, 0.3f, new Vector3(0f, -2.9f, 6f), new Vector3(0, 90 * MathF.PI / 180, 0), _bladeTexture);
+        LoadCylinder(0.25f, 0.25f, 0.08f, 100, new Vector3(0f, -2.9f, 6f), new Vector3(0, 0, 90 * MathF.PI / 180), _metalTexture);
+        LoadCylinder(0.05f, 0.05f, 0.5f, 100, new Vector3(0f, -2.9f, 6f), new Vector3(0, 0, 90 * MathF.PI / 180), _metalTexture);
+        LoadCylinder(0.05f, 0.05f, 0.7f, 100, new Vector3(0.205f, -2.55f, 6.095f), new Vector3(15 * MathF.PI / 180, 0, 0), _metalTexture);
+        LoadCylinder(0.05f, 0.05f, 0.7f, 100, new Vector3(-0.205f, -2.55f, 6.095f), new Vector3(15 * MathF.PI / 180, 0, 0), _metalTexture);
+        #endregion
+        //LoadParallelepiped(2f, 1.5f, 1f, 0, Vector3.UnitX * 4, Vector3.Zero, _testTexture);
             
     }
 
@@ -294,50 +350,118 @@ public class Window : GameWindow
             {
                 -hLength, -hHeight, -hWidth,
                 hLength, -hHeight, -hWidth,
-                hLength, -hHeight, hWidth,
-                -hLength, -hHeight, hWidth,
                 -hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, -hWidth,
                 hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, -hWidth,
+                
+                hLength, -hHeight, -hWidth,
+                hLength, -hHeight, hWidth,
+                hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, -hWidth,
+                hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, hWidth,
+                
+                hLength, -hHeight, hWidth,
+                -hLength, -hHeight, hWidth,
                 hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, hWidth,
                 -hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, hWidth,
+                
+                -hLength, -hHeight, hWidth,
+                -hLength, -hHeight, -hWidth,
+                -hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, hWidth,
+                -hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, -hWidth,
+                
+                -hLength, -hHeight, -hWidth,
+                hLength, -hHeight, -hWidth,
+                -hLength, -hHeight, hWidth,
+                hLength, -hHeight, hWidth,
+                
+                -hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, -hWidth,
+                hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, -hWidth,
+                -hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, hWidth,
+                hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, hWidth,
             };
             
             var normals = new List<float>
             {
-                -hLength, -hHeight, -hWidth,
-                hLength, -hHeight, -hWidth,
-                hLength, -hHeight, hWidth,
-                -hLength, -hHeight, hWidth,
-                -hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, -hWidth,
-                hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, -hWidth,
-                hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, hWidth,
-                -hLength + MathF.Sin(MathHelper.DegreesToRadians(angle)), hHeight, hWidth,
+                -1, 0, 0,
+                -1, 0, 0,
+                -1, 0, 0,
+                -1, 0, 0,
+                
+                0, 0, 1,
+                0, 0, 1,
+                0, 0, 1,
+                0, 0, 1,
+                
+                1, 0, 0,
+                1, 0, 0,
+                1, 0, 0,
+                1, 0, 0,
+                
+                -1, 0, 0,
+                -1, 0, 0,
+                -1, 0, 0,
+                -1, 0, 0,
+                
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0,
+                0, -1, 0,
+                
+                0, 1, 0,
+                0, 1, 0,
+                0, 1, 0,
+                0, 1, 0
             };
             var texCoords = new List<float>()
             {
                 0, 0,
+                0, 1,
                 1, 0,
+                1, 1,
+                
                 0, 0,
+                0, 1,
                 1, 0,
-                0, 1,
                 1, 1,
+                
+                0, 0,
                 0, 1,
+                1, 0,
                 1, 1,
+                
+                0, 0,
+                0, 1,
+                1, 0,
+                1, 1,
+                
+                0, 0,
+                0, 1,
+                1, 0,
+                1, 1,
+                
+                0, 0,
+                0, 1,
+                1, 0,
+                1, 1
             };
             var indices = new List<uint>()
             {
-                0, 1, 5,
-                0, 4, 5,
-                1, 2, 6,
-                1, 5, 6,
-                2, 3, 7,
-                2, 6, 7,
-                3, 0, 4,
-                3, 7, 4,
-                0, 1, 2, 
-                0, 2, 3,
+                0, 1, 2,
+                1, 2, 3,
+                
                 4, 5, 6,
-                4, 6, 7
+                5, 6, 7,
+                
+                8, 9, 10,
+                9, 10, 11,
+                
+                12, 13, 14,
+                13, 14, 15,
+                
+                16, 17, 18,
+                17, 18, 19,
+                
+                20, 21, 22,
+                21, 22, 23
             };
             
             LoadFigure(vertices.ToArray(), normals.ToArray(), texCoords.ToArray(), indices.ToArray(), pos, rot, texture);
@@ -647,6 +771,10 @@ public class Window : GameWindow
 
             LoadFigure(vertices.ToArray(), normals.ToArray(), texCoords.ToArray(), indices.ToArray(), pos, rot, texture);
         }
+    private void LoadCone(float length, float width, float height, Vector3 pos, Vector3 rot, Texture texture)
+    {
+        LoadPyramid(length, width, height, 100, pos, rot, texture);
+    }
     private void LoadPrism(float topRad, float botRad, float height, Vector3 pos, Vector3 rot, Texture texture)
     {
         LoadCylinder(topRad, botRad, height, 4, pos, rot, texture);
@@ -928,25 +1056,17 @@ public class Window : GameWindow
             _lightingShader.SetFloat($"pointLights[{i}].quadratic", 0.032f);
         }
 
-        for (var i = 0; i < 63; i++)
-        {
-            var x = _figures[i].Pos.X;
-            var y = _figures[i].Pos.Y;
-            var z = _figures[i].Pos.Z;
-            x = 0.75f * MathF.Cos(0.4f * i + _timer);
-            y = 8 + (i * 0.25f + 2 * _timer) % 16;
-            z = 1.75f * MathF.Sin(0.4f * i + _timer);
-            _figures[i].Pos = new Vector3(x, y, z);
-        }
-        
-        //for (var i = 60; i < 120; i++)
+        //for (var i = 0; i < 63; i++)
         //{
         //    var x = _figures[i].Pos.X;
+        //    var y = _figures[i].Pos.Y;
         //    var z = _figures[i].Pos.Z;
-        //    x = -0.75f * MathF.Cos(0.5f * i - _timer);
-        //    z = 1.75f * MathF.Sin(0.5f * i - _timer);
-        //    _figures[i].Pos = new Vector3(x, _figures[i].Pos.Y, z);
+        //    x = 1f * MathF.Cos(0.4f * i + _timer);
+        //    y = 8 + (i * 0.25f + 2 * _timer) % 16;
+        //    z = 1.75f * MathF.Sin(0.4f * i + _timer);
+        //    _figures[i].Pos = new Vector3(x, y, z);
         //}
+        
         foreach (var figure in _figures)
         {
             GL.BindVertexArray(figure.Vao);
@@ -990,7 +1110,7 @@ public class Window : GameWindow
             
             _lightingShader.SetMatrix4("model", model);
 
-            GL.DrawElements(PrimitiveType.Triangles, figure.IndCount, DrawElementsType.UnsignedInt, 0);
+            GL.DrawElements(_primitiveType, figure.IndCount, DrawElementsType.UnsignedInt, 0);
         }
     }
     
@@ -1038,6 +1158,11 @@ public class Window : GameWindow
         {
             Close();
         }
+        
+        if (input.IsKeyReleased(Keys.LeftAlt))
+            _primitiveType = _primitiveType == PrimitiveType.LineLoop
+                ? PrimitiveType.Triangles
+                : PrimitiveType.LineLoop;
 
         const float cameraSpeed = 5.0f;
         const float sensitivity = 0.2f;
