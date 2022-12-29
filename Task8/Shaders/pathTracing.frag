@@ -1,0 +1,371 @@
+#version 450 core
+#define FLOAT_MAX 3.4028235e+38
+#define FLOAT_MIN -3.4028235e+38
+#define EPSILON 0.001
+#define PI 3.14159265
+// Example shader include: #include PathTracing/fragCompute
+
+layout(location = 0) out vec4 FragColor;
+
+layout(binding = 0) uniform sampler2D SamplerLastFrame;
+layout(binding = 1) uniform samplerCube SamplerEnvironment;
+
+struct Material
+{
+    vec3 Albedo; // Base color
+    float SpecularChance; // How reflective
+    
+    vec3 Emissiv; // How much light is emitted
+    float SpecularRoughness; // How rough reflections are
+
+    vec3 Absorbance; // How strongly light is absorbed
+    float RefractionChance; // How transparent
+
+    float RefractionRoughness; // How rough refractions are
+    float IOR; // How strongly light gets refracted and the amout of light that is reflected
+};
+
+struct Cuboid 
+{
+    vec3 Min;
+    vec3 Max;
+    
+    Material Material;
+};
+
+struct Sphere 
+{
+    vec3 Position;
+    float Radius;
+
+    Material Material;
+};
+
+struct HitInfo 
+{
+    float T;
+    bool FromInside;
+    vec3 NearHitPos;
+    vec3 Normal;
+    Material Material;
+};
+
+struct Ray 
+{
+    vec3 Origin;
+    vec3 Direction;
+};
+
+layout(std140, binding = 0) uniform BasicDataUBO
+{
+    mat4 InvProjection;
+	mat4 InvView;
+	vec3 ViewPos;
+} basicDataUBO;
+
+layout(std140, binding = 1) uniform GameObjectsUBO
+{
+    Sphere Spheres[256];
+	Cuboid Cuboids[64];
+} gameObjectsUBO;
+
+in InOutVars
+{
+    vec2 TexCoord;
+} inData;
+
+vec3 Radiance(Ray ray);
+float BSDF(inout Ray ray, HitInfo hitInfo, out bool isRefractive);
+bool RayTrace(Ray ray, out HitInfo hitInfo);
+bool RaySphereIntersect(Ray ray, Sphere sphere, out float t1, out float t2);
+bool RayCuboidIntersect(Ray ray, Cuboid cuboid, out float t1, out float t2);
+vec3 CosineSampleHemisphere(vec3 normal);
+vec2 UniformSampleUnitCircle();
+vec3 GetNormal(Sphere sphere, vec3 surfacePosition);
+vec3 GetNormal(Cuboid cuboid, vec3 surfacePosition);
+uint GetPCGHash(inout uint seed);
+float GetRandomFloat01();
+float GetSmallestPositive(float t1, float t2);
+Ray GetWorldSpaceRay(mat4 inverseProj, mat4 inverseView, vec3 viewPos, vec2 normalizedDeviceCoords);
+float FresnelSchlick(float cosTheta, float n1, float n2);
+vec3 InverseGammaToLinear(vec3 rgb);
+
+uniform vec2 uboGameObjectsSize;
+
+uniform int rayDepth;
+uniform int SPP;
+
+uniform float focalLength;
+
+layout(location = 0) uniform int thisRendererFrame;
+
+uint rndSeed;
+void main()
+{
+    vec2 txtResultSize = vec2(textureSize(SamplerLastFrame, 0));
+
+    rndSeed = uint(gl_FragCoord.x) * 1973 + uint(gl_FragCoord.y) * 9277 + thisRendererFrame * 2699 | 1;
+    //rndSeed = thisRendererFrame;
+
+    vec3 irradiance = vec3(0.0);
+    for (int i = 0; i < SPP; i++)
+    {   
+        // add random offset to lower left corner of pixel to effectively integrate over whole pixel and eliminate aliasing
+        vec2 subPixelOffset = (vec2(GetRandomFloat01(), GetRandomFloat01()) - 0.5) / txtResultSize;
+        vec2 ndc = (inData.TexCoord + subPixelOffset) * 2.0 - 1.0;
+        Ray rayEyeToWorld = GetWorldSpaceRay(basicDataUBO.InvProjection, basicDataUBO.InvView, basicDataUBO.ViewPos, ndc);
+
+        vec3 focalPoint = rayEyeToWorld.Origin + rayEyeToWorld.Direction * focalLength;
+        vec2 offset = 0 * 0.5 * UniformSampleUnitCircle();
+        
+        rayEyeToWorld.Origin = (basicDataUBO.InvView * vec4(offset, 0.0, 1.0)).xyz;
+        rayEyeToWorld.Direction = normalize(focalPoint - rayEyeToWorld.Origin);
+
+        irradiance += Radiance(rayEyeToWorld);
+    }
+    irradiance /= SPP;
+    vec3 lastFrameColor = texture(SamplerLastFrame, inData.TexCoord).rgb;
+
+    irradiance = mix(lastFrameColor, irradiance, 1.0 / (thisRendererFrame + 1));
+    FragColor = vec4(irradiance, 1.0);
+}
+
+vec3 Radiance(Ray ray)
+{
+    vec3 throughput = vec3(1.0);
+    vec3 radiance = vec3(0.0);
+
+    HitInfo hitInfo;
+    bool isRefractive;
+    float rayProbability;
+    for (int i = 0; i < rayDepth; i++)
+    {
+        if (RayTrace(ray, hitInfo))
+        {
+            // If ray did just pass through medium apply Beer's law
+            if (hitInfo.FromInside)
+            {
+                hitInfo.Normal *= -1.0;
+                throughput *= exp(-hitInfo.Material.Absorbance * hitInfo.T);
+            }
+
+            // Evaluating BSDF gives a new ray based on the hitPoints properties and the incomming ray,
+            // the probability this ray would take its path 
+            // and a bool indicating wheter the ray penetrates into the medium
+            rayProbability = BSDF(ray, hitInfo, isRefractive);
+
+            radiance += hitInfo.Material.Emissiv * throughput;
+            if (!isRefractive)
+            {
+                // The cosine term is already taken into account by the CosineSampleHemisphere function. Its weighting the random rays to a cosine distibution
+                // throughput *= hitInfo.Material.Albedo * dot(ray.Direction, hitInfo.Normal);
+                
+                throughput *= hitInfo.Material.Albedo;
+            }
+            throughput /= rayProbability;
+
+            // Russian Roulette, unbiased method to terminate rays and therefore lower render times (also reduces fireflies)
+            {
+                float p = max(throughput.x, max(throughput.y, throughput.z));
+                if (GetRandomFloat01() > p)
+                    break;
+
+                throughput /= p;
+            }
+        }
+        else
+        {
+            radiance += texture(SamplerEnvironment, ray.Direction).rgb * throughput;
+            break;
+        }
+    }
+    return radiance;
+}
+
+float BSDF(inout Ray ray, HitInfo hitInfo, out bool isRefractive)
+{
+    isRefractive = false;
+
+    float specularChance = hitInfo.Material.SpecularChance;
+    float refractionChance = hitInfo.Material.RefractionChance;
+    if (specularChance > 0.0)
+    {
+        specularChance = mix(specularChance, 1.0, FresnelSchlick(dot(-ray.Direction, hitInfo.Normal), hitInfo.FromInside ? hitInfo.Material.IOR : 1.0, !hitInfo.FromInside ? hitInfo.Material.IOR : 1.0));
+        float diffuseChance = 1.0 - specularChance - refractionChance;
+        refractionChance = 1.0 - specularChance - diffuseChance;
+    }
+
+    vec3 diffuseRay = CosineSampleHemisphere(hitInfo.Normal);
+    float rayProbability = 1.0;
+    
+    float raySelectRoll = GetRandomFloat01();
+    if (specularChance > raySelectRoll)
+    {
+        vec3 reflectionRayDir = reflect(ray.Direction, hitInfo.Normal);
+        reflectionRayDir = normalize(mix(reflectionRayDir, diffuseRay, hitInfo.Material.SpecularRoughness * hitInfo.Material.SpecularRoughness)); 
+        ray.Direction = reflectionRayDir;
+        rayProbability = specularChance;
+    }
+    else if (specularChance + refractionChance > raySelectRoll)
+    {
+        vec3 refractionRayDir = refract(ray.Direction, hitInfo.Normal, hitInfo.FromInside ? (hitInfo.Material.IOR / 1.0) : (1.0 / hitInfo.Material.IOR));
+        refractionRayDir = normalize(mix(refractionRayDir, CosineSampleHemisphere(-hitInfo.Normal), hitInfo.Material.RefractionRoughness * hitInfo.Material.RefractionRoughness));
+        ray.Direction = refractionRayDir;
+        rayProbability = refractionChance;
+        isRefractive = true;
+    }
+    else
+    {
+        ray.Direction = diffuseRay;
+        rayProbability = 1.0 - specularChance - refractionChance;
+    }
+    
+    ray.Origin = hitInfo.NearHitPos + ray.Direction * EPSILON;
+    return max(rayProbability, EPSILON);
+}
+
+bool RayTrace(Ray ray, out HitInfo hitInfo)
+{
+    hitInfo.T = FLOAT_MAX;
+    float t1, t2;
+
+    for (int i = 0; i < uboGameObjectsSize.x; i++)
+    {
+        Sphere sphere = gameObjectsUBO.Spheres[i];
+        if (RaySphereIntersect(ray, sphere, t1, t2) && t2 > 0.0 && t1 < hitInfo.T)
+        {
+            hitInfo.T = GetSmallestPositive(t1, t2);
+            hitInfo.FromInside = hitInfo.T == t2;
+            hitInfo.Material = gameObjectsUBO.Spheres[i].Material;
+            hitInfo.NearHitPos = ray.Origin + ray.Direction * hitInfo.T;
+            hitInfo.Normal = GetNormal(sphere, hitInfo.NearHitPos);
+        }
+    }
+    
+    for (int i = 0; i < uboGameObjectsSize.y; i++)
+    {
+        Cuboid cuboid = gameObjectsUBO.Cuboids[i];
+        if (RayCuboidIntersect(ray, cuboid, t1, t2) && t2 > 0.0 && t1 < hitInfo.T)
+        {
+            hitInfo.T = GetSmallestPositive(t1, t2);
+            hitInfo.FromInside = hitInfo.T == t2;
+            hitInfo.Material = gameObjectsUBO.Cuboids[i].Material;
+            hitInfo.NearHitPos = ray.Origin + ray.Direction * hitInfo.T;
+            hitInfo.Normal = GetNormal(cuboid, hitInfo.NearHitPos);
+        }
+    }
+
+    return hitInfo.T != FLOAT_MAX;
+}
+
+// Source: https://antongerdelan.net/opengl/raycasting.html
+bool RaySphereIntersect(Ray ray, Sphere sphere, out float t1, out float t2)
+{
+    t1 = t2 = FLOAT_MAX;
+
+    vec3 sphereToRay = ray.Origin - sphere.Position;
+    float b = dot(ray.Direction, sphereToRay);
+    float c = dot(sphereToRay, sphereToRay) - sphere.Radius * sphere.Radius;
+    float discriminant = b * b - c;
+    if (discriminant < 0.0)
+        return false;
+
+    float squareRoot = sqrt(discriminant);
+    t1 = -b - squareRoot;
+    t2 = -b + squareRoot;
+
+    return t1 <= t2;
+}
+
+// Source: https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
+bool RayCuboidIntersect(Ray ray, Cuboid cuboid, out float t1, out float t2)
+{
+    t1 = FLOAT_MIN;
+    t2 = FLOAT_MAX;
+
+    vec3 t0s = (cuboid.Min - ray.Origin) / ray.Direction;
+    vec3 t1s = (cuboid.Max - ray.Origin) / ray.Direction;
+
+    vec3 tsmaller = min(t0s, t1s);
+    vec3 tbigger = max(t0s, t1s);
+
+    t1 = max(t1, max(tsmaller.x, max(tsmaller.y, tsmaller.z)));
+    t2 = min(t2, min(tbigger.x, min(tbigger.y, tbigger.z)));
+    return t1 <= t2;
+}
+
+// Source: https://blog.demofox.org/2020/05/25/casual-shadertoy-path-tracing-1-basic-camera-diffuse-emissive/
+vec3 CosineSampleHemisphere(vec3 normal)
+{
+
+    float z = GetRandomFloat01() * 2.0 - 1.0;
+    float a = GetRandomFloat01() * 2.0 * PI;
+    float r = sqrt(1.0 - z * z);
+    float x = r * cos(a);
+    float y = r * sin(a);
+
+    // Convert unit vector in sphere to a cosine weighted vector in hemisphere
+    return normalize(normal + vec3(x, y, z));
+}
+
+vec2 UniformSampleUnitCircle()
+{
+    float angle = GetRandomFloat01() * 2.0 * PI;
+    float r = sqrt(GetRandomFloat01());
+    return vec2(cos(angle), sin(angle)) * r;
+}
+
+vec3 GetNormal(Sphere sphere, vec3 surfacePosition)
+{
+    return (surfacePosition - sphere.Position) / sphere.Radius;
+}
+
+// Source: https://gist.github.com/Shtille/1f98c649abeeb7a18c5a56696546d3cf
+vec3 GetNormal(Cuboid cuboid, vec3 surfacePosition)
+{
+    vec3 halfSize = (cuboid.Max - cuboid.Min) * 0.5;
+    vec3 centerSurface = surfacePosition - (cuboid.Max + cuboid.Min) * 0.5;
+    
+    vec3 normal = vec3(0.0);
+    normal += vec3(sign(centerSurface.x), 0.0, 0.0) * step(abs(abs(centerSurface.x) - halfSize.x), EPSILON);
+    normal += vec3(0.0, sign(centerSurface.y), 0.0) * step(abs(abs(centerSurface.y) - halfSize.y), EPSILON);
+    normal += vec3(0.0, 0.0, sign(centerSurface.z)) * step(abs(abs(centerSurface.z) - halfSize.z), EPSILON);
+    return normalize(normal);
+}
+
+uint GetPCGHash(inout uint seed)
+{
+    seed = seed * 747796405u + 2891336453u;
+    uint word = ((seed >> ((seed >> 28u) + 4u)) ^ seed) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+ 
+float GetRandomFloat01()
+{
+    return float(GetPCGHash(rndSeed)) / 4294967296.0;
+}
+
+// Assumes t2 > t1 && t2 > 0.0
+float GetSmallestPositive(float t1, float t2)
+{
+    return t1 < 0 ? t2 : t1;
+}
+
+Ray GetWorldSpaceRay(mat4 inverseProj, mat4 inverseView, vec3 viewPos, vec2 normalizedDeviceCoords)
+{
+    vec4 rayEye = inverseProj * vec4(normalizedDeviceCoords, -1.0, 0.0);
+    rayEye.zw = vec2(-1.0, 0.0);
+    return Ray(viewPos, normalize((inverseView * rayEye).xyz));
+}
+
+float FresnelSchlick(float cosTheta, float n1, float n2)
+{
+    float r0 = (n1 - n2) / (n1 + n2);
+    r0 *= r0;
+    return r0 + (1.0 - r0) * pow(1.0 - cosTheta, 5.0);
+}
+
+vec3 InverseGammaToLinear(vec3 rgb)
+{
+    return mix(pow(((rgb + 0.055) / 1.055), vec3(2.4)), rgb / 12.92, vec3(lessThan(rgb, vec3(0.04045))));
+}

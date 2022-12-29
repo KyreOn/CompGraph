@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Task7", "Task7\Task7.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TexTest", "TexTest\TexTest.csproj", "{FBE30867-DDCB-4A41-B38A-AB57528CCC28}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Task8", "Task8\Task8.csproj", "{8225F8B6-833D-49B1-9D6E-B09F34EF48E4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{FBE30867-DDCB-4A41-B38A-AB57528CCC28}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FBE30867-DDCB-4A41-B38A-AB57528CCC28}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FBE30867-DDCB-4A41-B38A-AB57528CCC28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8225F8B6-833D-49B1-9D6E-B09F34EF48E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8225F8B6-833D-49B1-9D6E-B09F34EF48E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8225F8B6-833D-49B1-9D6E-B09F34EF48E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8225F8B6-833D-49B1-9D6E-B09F34EF48E4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
