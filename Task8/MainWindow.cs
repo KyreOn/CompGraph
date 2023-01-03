@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Collections.Generic;
 using OpenTK;
@@ -23,7 +23,7 @@ class MainWindow : GameWindow
     private const float Fov = 100;
     private Matrix4 _inverseProjection;
     private readonly Vector2 _nearFarPlane = new(Epsilon, 1000f);
-    private readonly Camera _camera = new Camera(new Vector3(0f, 1f, 0), new Vector3(0, 1, 0), 0f, 0f);
+    private readonly Camera _camera = new Camera(new Vector3(1f, 1f, 1f), new Vector3(0, 1, 0), 225f, 0f);
     private readonly List<BaseGameObject> _gameObjects = new();
     private ShaderProgram _finalProgram;
     private BufferObject _basicDataUbo;
@@ -117,7 +117,6 @@ class MainWindow : GameWindow
 
             if (KeyboardManager.IsKeyTouched(Key.Space))
             {
-                isPaused = !isPaused;
                 CursorVisible = !CursorVisible;
                 CursorGrabbed = !CursorGrabbed;
                 
